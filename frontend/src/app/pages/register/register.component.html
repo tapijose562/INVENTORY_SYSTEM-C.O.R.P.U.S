@@ -1,0 +1,55 @@
+    <div class="register-container">
+      <div class="register-box">
+        <h1>Inventory Corpus v2</h1>
+        <h2>Create Account</h2>
+
+        <form (ngSubmit)="register()">
+          <div class="form-group">
+            <label>Username</label>
+            <input
+              type="text"
+              [(ngModel)]="username"
+              name="username"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              [(ngModel)]="email"
+              name="email"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Full Name</label>
+            <input
+              type="text"
+              [(ngModel)]="fullName"
+              name="fullName"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              [(ngModel)]="password"
+              name="password"
+              required
+            />
+          </div>
+
+          <button type="submit" [disabled]="loading">
+            {{ loading ? 'Creating Account...' : 'Register' }}
+          </button>
+        </form>
+
+        <p *ngIf="error" class="error">{{ error }}</p>
+        <p>Already have an account? <a routerLink="/login">Login here</a></p>
+      </div>
+    </div>

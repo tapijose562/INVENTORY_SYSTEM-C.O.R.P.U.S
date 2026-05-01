@@ -1,0 +1,205 @@
+    <div class="training-container">
+      <nav class="navbar">
+        <div class="logo">📦 Inventory Corpus v2</div>
+        <ul class="nav-links">
+          <li><a routerLink="/admin/dashboard">Dashboard</a></li>
+          <li><a routerLink="/admin/detection">Detection</a></li>
+          <li><a routerLink="/admin/products">Products</a></li>
+          <li><a routerLink="/admin/training" class="active">Training</a></li>
+          <li><a (click)="logout()" class="logout">Logout</a></li>
+        </ul>
+      </nav>
+
+      <div class="training-content">
+        <h1>🚀 Model Training & Management</h1>
+        <p class="subtitle">Monitor YOLO training progress and manage trained models</p>
+
+        <div class="training-layout">
+          <!-- Left: Start Training Form -->
+          <div class="training-form-section">
+            <h2>📊 Start New Training Session</h2>
+
+            <form class="training-form">
+              <div class="form-group">
+                <label>Number of Epochs</label>
+                <input
+                  type="number"
+                  [(ngModel)]="trainingConfig.epochs"
+                  name="epochs"
+                  min="1"
+                  max="1000"
+                  placeholder="100"
+                />
+                <small>Recommended: 50-200 for fine-tuning</small>
+              </div>
+
+              <div class="form-group">
+                <label>Batch Size</label>
+                <select [(ngModel)]="trainingConfig.batch_size" name="batch_size">
+                  <option value="16">16 (GPU with 2GB VRAM)</option>
+                  <option value="32">32 (GPU with 4GB VRAM)</option>
+                  <option value="64">64 (GPU with 8GB VRAM)</option>
+                  <option value="128">128 (GPU with 16GB VRAM)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Learning Rate</label>
+                <input
+                  type="number"
+                  [(ngModel)]="trainingConfig.learning_rate"
+                  name="learning_rate"
+                  step="0.0001"
+                  min="0.00001"
+                  max="0.1"
+                  placeholder="0.001"
+                />
+                <small>Default: 0.001</small>
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" [(ngModel)]="trainingConfig.use_gpu" name="use_gpu" />
+                  Use GPU (CUDA)
+                </label>
+                <small>Enable if CUDA is installed and GPU is available</small>
+              </div>
+
+              <button
+                type="button"
+                class="btn btn-success"
+                (click)="startTraining()"
+                [disabled]="isTraining || activeSessions.length > 0"
+              >
+                🎯 Start Training
+              </button>
+            </form>
+          </div>
+
+          <!-- Right: Active & Historical Sessions -->
+          <div class="sessions-section">
+            <!-- Active Training -->
+            <div class="session-card active-session" *ngIf="activeSessions.length > 0">
+              <h3>⚡ Active Training Session</h3>
+
+              <div *ngFor="let session of activeSessions" class="session-details">
+                <div class="progress-container">
+                  <div class="progress-bar">
+                    <div class="progress-fill" [style.width.%]="session.progress"></div>
+                  </div>
+                  <span class="progress-text">{{ session.progress }}%</span>
+                </div>
+
+                <div class="metrics-grid">
+                  <div class="metric">
+                    <span class="metric-label">Status</span>
+                    <span class="metric-value" [class]="'status-' + session.status">
+                      {{ session.status | uppercase }}
+                    </span>
+                  </div>
+
+                  <div class="metric">
+                    <span class="metric-label">Loss</span>
+                    <span class="metric-value">{{ session.loss.toFixed(4) }}</span>
+                  </div>
+
+                  <div class="metric">
+                    <span class="metric-label">Accuracy</span>
+                    <span class="metric-value">{{ (session.accuracy * 100).toFixed(1) }}%</span>
+                  </div>
+
+                  <div class="metric" *ngIf="session.val_accuracy">
+                    <span class="metric-label">Val. Accuracy</span>
+                    <span class="metric-value">{{ (session.val_accuracy * 100).toFixed(1) }}%</span>
+                  </div>
+                </div>
+
+                <div class="session-actions">
+                  <button class="btn btn-secondary btn-sm" (click)="pauseTraining()" [disabled]="session.status !== 'running'">
+                    ⏸️ Pause
+                  </button>
+                  <button class="btn btn-danger btn-sm" (click)="stopTraining()">
+                    ⏹️ Stop
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- No Active Session -->
+            <div class="session-card no-session" *ngIf="activeSessions.length === 0">
+              <p>✨ No active training session</p>
+              <p class="text-muted">Configure and start a training session to begin</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historical Sessions -->
+        <div class="history-section">
+          <h2>📜 Training History</h2>
+
+          <div class="filters">
+            <input
+              type="text"
+              placeholder="Search by date..."
+              [(ngModel)]="filterText"
+              class="filter-input"
+            />
+            <button class="btn btn-secondary" (click)="loadSessions()">
+              🔄 Refresh
+            </button>
+          </div>
+
+          <div class="sessions-list">
+            <div *ngIf="sessionsHistory.length === 0" class="no-sessions">
+              <p>No training sessions found</p>
+            </div>
+
+            <div *ngFor="let session of sessionsHistory" class="session-item">
+              <div class="session-info">
+                <div class="session-date">{{ session.created_at | date: 'short' }}</div>
+                <div class="session-duration" *ngIf="session.completed_at">
+                  Duration: {{ calculateDuration(session.created_at, session.completed_at) }}
+                </div>
+              </div>
+
+              <div class="session-stats">
+                <span class="stat">
+                  <strong>Epochs:</strong> {{ session.epochs }}
+                </span>
+                <span class="stat">
+                  <strong>Final Loss:</strong> {{ session.loss.toFixed(4) }}
+                </span>
+                <span class="stat">
+                  <strong>Accuracy:</strong> {{ (session.accuracy * 100).toFixed(1) }}%
+                </span>
+              </div>
+
+              <div class="session-status" [class]="'status-' + session.status">
+                {{ session.status | uppercase }}
+              </div>
+
+              <div class="session-actions" *ngIf="session.status === 'completed'">
+                <button class="btn btn-success btn-sm" (click)="downloadModel(session)">
+                  ⬇️ Download Model
+                </button>
+                <button class="btn btn-info btn-sm" (click)="deployModel(session)">
+                  🚀 Deploy
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Training Tips -->
+        <div class="tips-section">
+          <h3>💡 Training Tips</h3>
+          <ul>
+            <li><strong>GPU Acceleration:</strong> Enable CUDA for 5-10x faster training. See docs/CUDA_SETUP.md</li>
+            <li><strong>Batch Size:</strong> Larger batches need more GPU memory but train faster</li>
+            <li><strong>Epochs:</strong> Start with 50-100 epochs, increase if accuracy plateaus</li>
+            <li><strong>Learning Rate:</strong> Lower rates = slower convergence, higher rates = risk of instability</li>
+            <li><strong>Data Quality:</strong> Ensure detection logs have high-quality images and accurate labels</li>
+          </ul>
+        </div>
+      </div>
+    </div>

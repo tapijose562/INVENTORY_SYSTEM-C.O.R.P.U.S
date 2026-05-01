@@ -1,0 +1,159 @@
+<section class="client-detection-page">
+  <div class="detection-card">
+    <div class="detection-intro">
+      <div>
+        <p class="eyebrow">Detectar zapatillas</p>
+        <h1>Detección de calzado en tiempo real</h1>
+        <p class="description">Utiliza la cámara web o sube una imagen para detectar zapatos con precisión de IA.</p>
+      </div>
+    </div>
+
+    <div class="overview-grid">
+      <div class="overview-card">
+        <h2>🤖 Selección de modelos de IA</h2>
+        <div class="model-option">
+          <div class="model-label">
+            <strong>Modelo heredado</strong>
+            <span>detección general de objetos</span>
+          </div>
+          <span class="chip available">Disponible</span>
+        </div>
+
+        <div class="model-option" [ngClass]="{ 'unavailable-option': !corpusStatus?.available }">
+          <div class="model-label">
+            <strong>🎯 Modelo de corpus</strong>
+            <span>Entrenado con zapatillas Nike/Adidas.</span>
+          </div>
+          <span class="chip" [class.available]="corpusStatus?.available" [class.unavailable]="!corpusStatus?.available">
+            {{ corpusStatus?.available ? '✅ Disponible' : '❌ No disponible' }}
+          </span>
+        </div>
+        <div class="model-toggle" *ngIf="corpusStatus">
+          <label>
+            <input type="checkbox" [(ngModel)]="useCorpusModel" [disabled]="!corpusStatus.available" />
+            Usar modelo corpus para la detección
+          </label>
+        </div>
+      </div>
+
+      <div class="overview-card realtime-info">
+        <h2>⚡ Modo de detección en tiempo real (Beta)</h2>
+        <p>Detección automática cada 1-2 segundos: perfecta para pruebas y monitorización.</p>
+        <ul class="feature-list">
+          <li>📹 Transmisión de cámara en vivo con detección automática</li>
+          <li>🎯 Resultados en tiempo real que se actualizan continuamente</li>
+          <li>📊 Historial de detección y contador de FPS</li>
+          <li>🚀 ¡No es necesario capturar manualmente, solo inicia y mira!</li>
+        </ul>
+        <button
+          class="btn-primary realtime-button"
+          (click)="webcamActive ? stopRealtimeDetection() : startRealtimeDetection()"
+          [disabled]="loading"
+        >
+          <span *ngIf="!webcamActive">⚡ Iniciar detección en tiempo real</span>
+          <span *ngIf="webcamActive">⏹️ Detener detección en tiempo real</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="realtime-status-panel" *ngIf="realtimeModeActive || webcamActive">
+      <strong>Modo Beta activado.</strong>
+      <p>{{ realtimeStatusMessage }}</p>
+    </div>
+
+    <div class="camera-preview" *ngIf="webcamActive">
+      <video #clientWebcam autoplay playsinline muted></video>
+    </div>
+
+    <div class="upload-section">
+      <div class="upload-dropzone">
+        <label class="upload-label" for="shoe-image">
+          <input id="shoe-image" type="file" accept="image/*" (change)="onFileChange($event)" />
+          <div class="upload-body">
+            <span class="upload-icon">📸</span>
+            <strong>Seleccionar imagen</strong>
+            <span>Arrastra o haz clic para subir una foto de tu zapatilla</span>
+          </div>
+        </label>
+        <div class="preview-panel" *ngIf="imagePreview">
+          <img [src]="imagePreview" alt="Preview de la zapatilla" />
+        </div>
+      </div>
+
+      <button class="btn-primary" (click)="submitDetection()" [disabled]="!selectedFile || loading">
+        {{ loading ? 'Detectando...' : 'Ejecutar detección' }}
+      </button>
+    </div>
+
+    <div class="status-section" *ngIf="loading">
+      <div class="loading-spinner"></div>
+      <p>Procesando imagen, por favor espera...</p>
+    </div>
+
+    <div class="error-message" *ngIf="error">{{ error }}</div>
+
+    <div class="result-grid" *ngIf="result">
+      <div class="result-summary-section">
+        <div class="result-card summary-card">
+          <h2>Resumen detectado</h2>
+          <p class="result-summary">{{ summary }}</p>
+        </div>
+        <div class="result-price-line">Precio: {{ result.price != null ? ('$' + result.price.toFixed(2)) : 'N/A' }}</div>
+      </div>
+
+      <div class="result-details-section">
+        <div class="result-card large-card">
+          <h2>Resultado de detección</h2>
+          <div class="result-row"><span>Nombre</span><strong>{{ result.name || result.detection_class || 'Desconocido' }}</strong></div>
+          <div class="result-row"><span>Marca</span><strong>{{ result.brand || 'No detectada' }}</strong></div>
+          <div class="result-row"><span>Confianza</span><strong>{{ (result.confidence * 100).toFixed(1) || '0.0' }}%</strong></div>
+          <div class="result-row"><span>Colores</span><strong>{{ result.colors || 'No detectados' }}</strong></div>
+          <div class="result-row"><span>OCR / Texto</span><strong>{{ result.detected_text || 'No hay texto' }}</strong></div>
+        </div>
+
+        <div class="result-card small-card">
+          <h2>Datos de consulta</h2>
+          <div class="result-row"><span>Precio sugerido</span><strong>{{ result.suggested_price ? ('$' + result.suggested_price.toFixed(2)) : 'N/A' }}</strong></div>
+          <div class="result-row"><span>Talla sugerida</span><strong>{{ sizes.length ? sizes.join(', ') : 'N/A' }}</strong></div>
+          <div class="result-row"><span>Stock disponible</span><strong>{{ result.stock ?? 'Consulta en tienda' }}</strong></div>
+          <div class="result-row"><span>Modelo detectado</span><strong>{{ result.detection_class || '---' }}</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.result-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.result-summary-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.result-price-line {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  padding: 10px;
+  background-color: #f0f0f0;
+  border-radius: 5px;
+}
+
+.result-details-section {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.result-card {
+  flex: 1;
+  min-width: 300px;
+}
+</style>

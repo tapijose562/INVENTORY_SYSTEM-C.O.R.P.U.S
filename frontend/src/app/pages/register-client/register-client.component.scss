@@ -1,0 +1,30 @@
+.register-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.register-box {
+  width: 360px;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  background: #fff;
+}
+
+.register-box h1 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+}
+
+.register-box h2 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: #555;
+}
+
+.form-group { margin-bottom: 12px; }
+input { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd; }
+button { width: 100%; padding: 10px; border: none; border-radius: 6px; background: #1976d2; color: #fff; }
+.error { color: #b00020; margin-top: 8px; }

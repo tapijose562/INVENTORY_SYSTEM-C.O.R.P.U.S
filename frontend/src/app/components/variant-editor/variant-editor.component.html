@@ -1,0 +1,43 @@
+<div class="variant-editor">
+    <div class="top-row">
+    <label>Product Name</label>
+    <input type="text" [formControl]="productNameControl" placeholder="e.g., Air Max 90" />
+    <label>Brand</label>
+    <input type="text" [formControl]="brandControl" placeholder="e.g., Nike" />
+  </div>
+
+  <div class="variants-list">
+    <div class="variants-header">
+      <h4>Inventory Variants</h4>
+      <button class="btn" type="button" (click)="addVariant('')">+ Agregar color</button>
+    </div>
+
+    <div *ngIf="variants.length === 0" class="empty-note">No hay colores. Añade uno para empezar.</div>
+
+    <div *ngFor="let v of variants.controls; let i = index" class="variant-row">
+        <div class="variant-top">
+        <input placeholder="Color (ej. Azul)" [formControl]="getVariantColorControl(i)" />
+        <button class="btn-danger" type="button" (click)="removeVariant(i)">Eliminar color</button>
+      </div>
+
+      <div class="sizes-list">
+        <div *ngFor="let s of sizesOf(i).controls; let j = index" class="size-row">
+          <input class="size-input" type="number" [formControl]="getSizeControl(i, j)" placeholder="Talla" />
+          <input class="stock-input" type="number" [formControl]="getStockControl(i, j)" placeholder="Cantidad" />
+          <button class="btn-small" type="button" (click)="removeSize(i, j)">Eliminar talla</button>
+          <div *ngIf="s.errors?.duplicateSize" class="error">Talla duplicada en este color</div>
+        </div>
+
+        <div class="sizes-actions">
+          <button class="btn" type="button" (click)="addSize(i)">+ Agregar talla</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div>Total stock: {{ totalStock() }}</div>
+      <div class="availability">{{ availabilityLabel() }}</div>
+    </div>
+
+  </div>
+</div>

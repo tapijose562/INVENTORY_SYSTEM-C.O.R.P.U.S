@@ -1,0 +1,64 @@
+<div class="detection-selector" *ngIf="detections">
+  <h3>Selecciona la detección correcta</h3>
+  <p class="subtitle">Se encontraron {{ detections.total_found }} objetos. Selecciona el que mejor representa el calzado:</p>
+
+  <div class="detections-grid">
+    <mat-card
+      *ngFor="let detection of detections.detections"
+      [class.selected]="selectedDetectionId === detection.id"
+      [class.recommended]="detection.recommended"
+      class="detection-card"
+      (click)="selectDetection(detection.id)"
+    >
+      <mat-card-header>
+        <mat-card-title>{{ detection.class }}</mat-card-title>
+        <mat-card-subtitle>
+          Confianza: {{ (detection.confidence * 100).toFixed(1) }}%
+          <span *ngIf="detection.recommended" class="recommended-badge">Recomendado</span>
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="detection-info">
+          <div class="bbox-preview" [style.width.px]="previewWidth" [style.height.px]="previewHeight">
+            <div
+              class="bbox-overlay"
+              [style.left.px]="getScaledX(detection.bbox[0])"
+              [style.top.px]="getScaledY(detection.bbox[1])"
+              [style.width.px]="getScaledWidth(detection.bbox)"
+              [style.height.px]="getScaledHeight(detection.bbox)"
+            ></div>
+          </div>
+          <div class="detection-details">
+            <p><strong>Posición:</strong> Centro ({{ detection.center_x.toFixed(0) }}, {{ detection.center_y.toFixed(0) }})</p>
+            <p><strong>Área:</strong> {{ detection.area.toFixed(0) }} px²</p>
+            <p><strong>Es calzado:</strong> {{ detection.is_shoe ? 'Sí' : 'No' }}</p>
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions>
+        <button mat-raised-button color="primary" (click)="confirmSelection(detection.id)">
+          <mat-icon>check</mat-icon>
+          Seleccionar
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <div class="actions" *ngIf="selectedDetectionId !== null">
+    <button mat-button (click)="cancelSelection()">
+      <mat-icon>cancel</mat-icon>
+      Cancelar
+    </button>
+    <button mat-raised-button color="accent" (click)="confirmSelection(selectedDetectionId)">
+      <mat-icon>done</mat-icon>
+      Confirmar Selección
+    </button>
+  </div>
+</div>
+
+<div class="loading" *ngIf="loading">
+  <mat-spinner></mat-spinner>
+  <p>Analizando imagen...</p>
+</div>

@@ -1,0 +1,160 @@
+.client-products-page {
+  display: grid;
+  gap: 1.75rem;
+  padding: 1rem 0;
+
+  .catalog-header {
+    display: grid;
+    gap: 1rem;
+    align-items: start;
+    grid-template-columns: 1fr max-content;
+
+    @media (max-width: 860px) {
+      grid-template-columns: 1fr;
+    }
+
+    .eyebrow {
+      color: #2563eb;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      font-size: 0.82rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2rem;
+      color: #111827;
+    }
+
+    .description {
+      margin: 0.75rem 0 0;
+      color: #475569;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .filter-bar {
+      display: grid;
+      gap: 0.85rem;
+      align-items: stretch;
+      min-width: 280px;
+
+      input,
+      select {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 0.9rem;
+        padding: 0.95rem 1rem;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+      }
+    }
+  }
+
+  .products-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+
+  .product-card {
+    background: white;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.1);
+    }
+
+    .image-wrap {
+      height: 240px;
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+      }
+    }
+
+    .product-content {
+      padding: 1.5rem;
+      display: grid;
+      gap: 0.85rem;
+
+      .product-brand {
+        margin: 0;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        color: #2563eb;
+        letter-spacing: 0.08em;
+      }
+
+      .product-name {
+        margin: 0;
+        font-size: 1.2rem;
+        color: #111827;
+      }
+
+      .product-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .meta-pill {
+        background: #eff6ff;
+        color: #1d4ed8;
+        padding: 0.55rem 0.85rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+      }
+
+      .meta-text {
+        color: #475569;
+        margin: 0;
+        line-height: 1.6;
+      }
+    }
+  }
+
+  .pagination-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+
+    button {
+      border: none;
+      background: #2563eb;
+      color: white;
+      padding: 0.9rem 1.25rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+
+      &:disabled {
+        background: #cbd5e1;
+        cursor: not-allowed;
+      }
+    }
+  }
+}

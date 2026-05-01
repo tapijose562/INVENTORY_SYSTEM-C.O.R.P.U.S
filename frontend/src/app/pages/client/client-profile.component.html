@@ -1,0 +1,25 @@
+<section class="profile-page">
+  <div class="profile-card">
+    <h1>Mi perfil</h1>
+    <p class="subtitle">Información de cuenta y detalles personales</p>
+
+    <div class="profile-grid">
+      <div>
+        <span class="label">Nombre</span>
+        <p>{{ profile?.full_name || profile?.username || 'Cliente' }}</p>
+      </div>
+      <div>
+        <span class="label">Usuario</span>
+        <p>{{ profile?.username || 'sin usuario' }}</p>
+      </div>
+      <div>
+        <span class="label">Email</span>
+        <p>{{ profile?.email || 'sin email' }}</p>
+      </div>
+      <div>
+        <span class="label">Rol</span>
+        <p>{{ profile?.role || 'cliente' }}</p>
+      </div>
+    </div>
+  </div>
+</section>

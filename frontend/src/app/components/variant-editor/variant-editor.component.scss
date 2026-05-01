@@ -1,0 +1,16 @@
+.variant-editor { padding: 12px; border: 1px solid #e6e6e6; border-radius: 6px; background: #fff; }
+.top-row { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
+.top-row input { padding:6px; border:1px solid #ccc; border-radius:4px; }
+.variants-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.variant-row { padding:8px; border:1px dashed #ddd; margin-bottom:8px; border-radius:6px; }
+.variant-top { display:flex; gap:8px; align-items:center; }
+.sizes-list { margin-top:8px; }
+.size-row { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+.size-input, .stock-input { width:80px; padding:6px; border:1px solid #ccc; border-radius:4px; }
+.summary { margin-top:12px; font-weight:600; }
+.error { color:#c62828; font-size:12px; }
+.btn { background:#1976d2; color:#fff; border:none; padding:6px 8px; border-radius:4px; }
+.btn-danger { background:#e53935; color:#fff; border:none; padding:6px 8px; border-radius:4px; }
+.btn-small { padding:4px 6px; }
+.empty-note { color:#666; font-style:italic; }
+.preview-image { max-width:360px; border:1px solid #ddd; }

@@ -1,0 +1,88 @@
+    <div class="dashboard-container">
+      <nav class="navbar">
+        <div class="logo">📦 Inventory Corpus v2</div>
+        <ul class="nav-links">
+          <li *ngIf="currentUser?.role === 'admin'"><a routerLink="/admin/dashboard" class="active">Dashboard</a></li>
+          <li><a routerLink="/admin/detection">Detection</a></li>
+          <li><a routerLink="/admin/products">Products</a></li>
+          <li *ngIf="currentUser?.role === 'admin'"><a routerLink="/admin/training">Training</a></li>
+          <li><a (click)="logout()" class="logout">Logout</a></li>
+        </ul>
+      </nav>
+
+      <div class="dashboard-content">
+        <header class="header">
+          <div>
+            <h1>Welcome back! 👋</h1>
+            <p class="subtitle">{{ currentUser?.username || 'User' }}, let's manage your shoe inventory</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-primary" routerLink="/admin/detection">
+              🔍 New Detection
+            </button>
+          </div>
+        </header>
+
+        <!-- Key Metrics -->
+        <div class="metrics-section">
+          <h2>📊 Key Metrics</h2>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-icon">📦</div>
+              <div class="metric-content">
+                <span class="metric-label">Total Products</span>
+                <span class="metric-value">{{ totalProducts }}</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon">🔍</div>
+              <div class="metric-content">
+                <span class="metric-label">Detections</span>
+                <span class="metric-value">{{ totalDetections }}</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon">⭐</div>
+              <div class="metric-content">
+                <span class="metric-label">Avg Confidence</span>
+                <span class="metric-value">{{ avgConfidence }}%</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon">🏷️</div>
+              <div class="metric-content">
+                <span class="metric-label">Brands</span>
+                <span class="metric-value">{{ totalBrands }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="actions-section">
+          <h2>🚀 Quick Actions</h2>
+          <div class="actions-grid">
+            <div class="action-card" routerLink="/admin/detection">
+              <div class="action-icon">📷</div>
+              <h3>Detect Shoes</h3>
+              <p>Use webcam or upload images to detect and analyze shoes</p>
+            </div>
+
+            <div class="action-card" routerLink="/admin/products">
+              <div class="action-icon">📋</div>
+              <h3>View Inventory</h3>
+              <p>Explore all detected products and manage stock</p>
+            </div>
+
+            <div *ngIf="currentUser?.role === 'admin'" class="action-card" routerLink="/admin/training">
+              <div class="action-icon">🤖</div>
+              <h3>Train Model</h3>
+              <p>Start a training session to improve detection accuracy</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

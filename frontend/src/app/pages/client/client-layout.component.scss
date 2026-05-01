@@ -1,0 +1,87 @@
+.client-layout {
+  min-height: 100vh;
+  background: #f5f7fb;
+  color: #1f2937;
+}
+
+.client-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+
+  .brand-icon {
+    font-size: 2rem;
+  }
+
+  .brand-title {
+    font-weight: 700;
+    font-size: 1.25rem;
+  }
+
+  .brand-subtitle {
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+}
+
+.client-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.client-nav a,
+.logout-button {
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  color: #374151;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  transition: background 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+}
+
+.client-nav a:hover,
+.logout-button:hover,
+.client-nav a.active {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.logout-button {
+  background: #1d4ed8;
+  color: white;
+  box-shadow: 0 8px 20px rgba(29, 78, 216, 0.18);
+}
+
+.client-content {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2rem 2rem 3rem;
+}
+
+@media (max-width: 860px) {
+  .client-header {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .client-nav {
+    justify-content: center;
+  }
+}

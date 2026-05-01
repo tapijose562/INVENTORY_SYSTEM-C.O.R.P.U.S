@@ -1,0 +1,453 @@
+    <div class="products-container">
+      <nav class="navbar">
+        <div class="logo">📦 Inventory Corpus v2</div>
+        <ul class="nav-links">
+          <li *ngIf="currentUser?.role === 'admin'"><a routerLink="/admin/dashboard">Dashboard</a></li>
+          <li><a routerLink="/admin/detection">Detection</a></li>
+          <li><a routerLink="/admin/products" class="active">Products</a></li>
+          <li *ngIf="currentUser?.role === 'admin'"><a routerLink="/admin/training">Training</a></li>
+          <li><a (click)="logout()" class="logout">Logout</a></li>
+        </ul>
+      </nav>
+
+      <div class="products-content">
+        <h1>📦 Inventory Management</h1>
+        <p class="subtitle">Manage and organize detected shoe inventory</p>
+
+        <div class="controls-section">
+          <div class="search-bar">
+            <input
+              type="text"
+              [(ngModel)]="searchQuery"
+              placeholder="🔍 Search by name, brand, or color..."
+              (input)="filterProducts()"
+              class="search-input"
+            />
+          </div>
+
+          <div class="filters">
+            <select [(ngModel)]="selectedBrand" (change)="filterProducts()" class="filter-select">
+              <option value="">All Brands</option>
+              <option *ngFor="let brand of uniqueBrands" [value]="brand">
+                {{ brand }}
+              </option>
+            </select>
+
+            <select [(ngModel)]="sortBy" (change)="sortProducts()" class="filter-select">
+              <option value="created_at">Newest First</option>
+              <option value="name">Name (A-Z)</option>
+              <option value="stock">Stock Amount</option>
+              <option value="yolo_confidence">Confidence Score</option>
+            </select>
+
+            <button class="btn btn-secondary" (click)="loadProducts()">
+              🔄 Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-info">
+              <span class="stat-label">Total Products</span>
+              <span class="stat-value">{{ products.length }}</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-info">
+              <span class="stat-label">Total Stock</span>
+              <span class="stat-value">{{ calculateTotalStock() }}</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-info">
+              <span class="stat-label">Avg. Confidence</span>
+              <span class="stat-value">{{ (calculateAvgConfidence() * 100).toFixed(1) }}%</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">🏷️</div>
+            <div class="stat-info">
+              <span class="stat-label">Brands</span>
+              <span class="stat-value">{{ uniqueBrands.length }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Products View -->
+        <div class="view-toggle">
+          <button
+            [class.active]="viewMode === 'grid'"
+            (click)="viewMode = 'grid'"
+            class="toggle-btn"
+          >
+            ▦ Grid
+          </button>
+          <button
+            [class.active]="viewMode === 'list'"
+            (click)="viewMode = 'list'"
+            class="toggle-btn"
+          >
+            ☰ List
+          </button>
+        </div>
+
+        <!-- Grid View -->
+        <div *ngIf="viewMode === 'grid'" class="products-grid">
+          <div *ngIf="filteredProducts.length === 0" class="no-products">
+            <p>📭 No products found</p>
+          </div>
+
+          <div *ngFor="let product of filteredProducts" class="product-card">
+            <div class="card-image">
+              <!-- Loading indicator while images are being loaded -->
+              <div *ngIf="imagesLoading[product.id]" class="image-loading">
+                <div class="spinner">⟳</div>
+                <p>Loading images...</p>
+              </div>
+              
+              <!-- Image Carousel -->
+              <div class="image-carousel" 
+                   *ngIf="product.images && product.images.length > 0"
+                   (mouseenter)="onImageMouseEnter(product.id)"
+                   (mouseleave)="onImageMouseLeave(product.id)">
+                
+                <!-- Main Image -->
+                <img *ngIf="getCurrentImage(product)"
+                  [src]="getCurrentImage(product)"
+                  [alt]="product.name"
+                  class="product-image"
+                  [style.transform]="'scale(' + getZoomLevel(product.id) + ')'"
+                  (error)="onImageError($event)"
+                  (click)="openFullscreenModal(product)"
+                  style="cursor: pointer;"
+                />
+                <div *ngIf="!getCurrentImage(product)" class="placeholder-image">
+                  📷 No Image
+                </div>
+
+                <!-- Zoom Controls -->
+                <div class="zoom-controls" *ngIf="showZoomControls[product.id]">
+                  <button class="zoom-btn zoom-in" (click)="zoomIn(product.id)" title="Zoom In">+</button>
+                  <button class="zoom-btn zoom-out" (click)="zoomOut(product.id)" title="Zoom Out">−</button>
+                  <button class="zoom-btn zoom-reset" (click)="resetZoom(product.id)" title="Reset Zoom">⭯</button>
+                </div>
+                
+                <!-- Navigation Controls (only show if multiple images) -->
+                <div class="carousel-nav" *ngIf="product.images.length > 1">
+                  <button class="nav-btn nav-prev" (click)="prevImage(product)" title="Previous Image">‹</button>
+                  <button class="nav-btn nav-next" (click)="nextImage(product)" title="Next Image">›</button>
+                </div>
+                
+                <!-- Image Indicators -->
+                <div class="image-indicators" *ngIf="product.images.length > 1">
+                  <span 
+                    *ngFor="let image of product.images; let i = index"
+                    class="indicator"
+                    [class.active]="i === getCurrentImageIndex(product)"
+                    (click)="currentImageIndex[product.id] = i">
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Fallback for single image or no images -->
+              <div *ngIf="!product.images || product.images.length === 0">
+                <img
+                  *ngIf="product.image_url && isValidImageUrl(product.image_url)"
+                  [src]="product.image_url"
+                  [alt]="product.name"
+                  class="product-image"
+                  (error)="onImageError($event)"
+                  (click)="openFullscreenModal(product)"
+                  style="cursor: pointer;"
+                />
+                <div *ngIf="!product.image_url || !isValidImageUrl(product.image_url)" class="placeholder-image">
+                  📷 No Image
+                </div>
+              </div>
+            </div>
+
+            <div class="card-header">
+              <span class="product-name">{{ product.name }}</span>
+              <span class="badge badge-primary">{{ product.brand }}</span>
+            </div>
+
+            <div class="color-display">
+              <div
+                class="color-sample"
+                [style.backgroundColor]="'rgb(' + product.color_rgb.r + ',' + product.color_rgb.g + ',' + product.color_rgb.b + ')'"
+              ></div>
+              <span class="color-name">{{ product.color_primary }}</span>
+            </div>
+
+            <div class="product-details">
+              <div class="detail-row">
+                <span class="label">Size:</span>
+                <span class="value">{{ product.size }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Stock:</span>
+                <span class="value stock" [class.low-stock]="product.stock < 5">
+                  {{ product.stock }}
+                </span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Confidence:</span>
+                <span class="value">{{ (product.yolo_confidence * 100).toFixed(1) }}%</span>
+              </div>
+              <div class="detail-row" *ngIf="product.price">
+                <span class="label">Price:</span>
+                <span class="value">{{ product.price | currency }}</span>
+              </div>
+            </div>
+
+            <div class="card-actions">
+              <ng-container *ngIf="currentUser?.role === 'admin'">
+                <button
+                  class="btn btn-sm btn-primary"
+                  (click)="editProduct(product)"
+                  [disabled]="deleteLoading[product.id]"
+                >
+                  ✏️ Edit
+                </button>
+                <button
+                  class="btn btn-sm btn-danger"
+                  (click)="deleteProduct(product.id)"
+                  [disabled]="deleteLoading[product.id]"
+                >
+                  <span *ngIf="!deleteLoading[product.id]">🗑️ Delete</span>
+                  <span *ngIf="deleteLoading[product.id]">⏳ Deleting...</span>
+                </button>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+
+        <!-- List View -->
+        <div *ngIf="viewMode === 'list'" class="products-list">
+          <table *ngIf="filteredProducts.length > 0" class="products-table">
+            <thead>
+              <tr>
+                <th>Product Name</th>
+                <th>Brand</th>
+                <th>Color</th>
+                <th>Size</th>
+                <th>Stock</th>
+                <th>Confidence</th>
+                <th>Price</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let product of filteredProducts" class="table-row">
+                <td>{{ product.name }}</td>
+                <td>{{ product.brand }}</td>
+                <td>
+                  <div class="color-cell">
+                    <div
+                      class="color-dot"
+                      [style.backgroundColor]="'rgb(' + product.color_rgb.r + ',' + product.color_rgb.g + ',' + product.color_rgb.b + ')'"
+                    ></div>
+                    {{ product.color_primary }}
+                  </div>
+                </td>
+                <td>{{ product.size }}</td>
+                <td [class.low-stock]="product.stock < 5">{{ product.stock }}</td>
+                <td>{{ (product.yolo_confidence * 100).toFixed(1) }}%</td>
+                <td>{{ product.price | currency }}</td>
+                <td class="table-actions">
+                  <ng-container *ngIf="currentUser?.role === 'admin'">
+                    <button
+                      class="btn btn-sm btn-primary"
+                      (click)="editProduct(product)"
+                      [disabled]="deleteLoading[product.id]"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      class="btn btn-sm btn-danger"
+                      (click)="deleteProduct(product.id)"
+                      [disabled]="deleteLoading[product.id]"
+                    >
+                      <span *ngIf="!deleteLoading[product.id]">🗑️</span>
+                      <span *ngIf="deleteLoading[product.id]">⏳</span>
+                    </button>
+                  </ng-container>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div *ngIf="filteredProducts.length === 0" class="no-products">
+            <p>📭 No products found</p>
+          </div>
+        </div>
+
+        <!-- Edit Modal -->
+        <div *ngIf="editingProduct" class="modal-overlay" (click)="cancelEdit()">
+          <div class="modal" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <h2>✏️ Edit Product</h2>
+              <button class="close-btn" (click)="cancelEdit()">✕</button>
+            </div>
+
+            <form class="edit-form" (ngSubmit)="saveEdit()">
+              <div class="form-group">
+                <label>Product Name *</label>
+                <input
+                  type="text"
+                  [(ngModel)]="editingProduct.name"
+                  name="name"
+                  placeholder="e.g., Nike Air Max"
+                  required
+                />
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Brand *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="editingProduct.brand"
+                    name="brand"
+                    placeholder="e.g., Nike"
+                    required
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Size *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="editingProduct.size"
+                    name="size"
+                    placeholder="e.g., 42"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Color</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="editingProduct.color_primary"
+                    name="color_primary"
+                    placeholder="e.g., Black"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Stock *</label>
+                  <input
+                    type="number"
+                    [(ngModel)]="editingProduct.stock"
+                    name="stock"
+                    min="0"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Price ($)</label>
+                  <input
+                    type="number"
+                    [(ngModel)]="editingProduct.price"
+                    name="price"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Confidence (%)</label>
+                  <input
+                    type="number"
+                    [(ngModel)]="editingProduct.yolo_confidence"
+                    name="confidence"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    disabled
+                  />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Description</label>
+                <textarea
+                  [(ngModel)]="editingProduct.description"
+                  name="description"
+                  placeholder="Add product details..."
+                  rows="3"
+                ></textarea>
+              </div>
+
+              <!-- Loading and Error States -->
+              <div *ngIf="editError" class="error-message">
+                <strong>❌ Error:</strong> {{ editError }}
+              </div>
+
+              <div class="form-actions">
+                <button
+                  type="submit"
+                  class="btn btn-success"
+                  [disabled]="editLoading"
+                >
+                  <span *ngIf="!editLoading">✅ Save Changes</span>
+                  <span *ngIf="editLoading">⏳ Saving...</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  (click)="cancelEdit()"
+                  [disabled]="editLoading"
+                >
+                  ❌ Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fullscreen Image Modal -->
+      <div *ngIf="showFullscreenModal" class="fullscreen-modal-overlay" (click)="closeFullscreenModal()">
+        <div class="fullscreen-modal" (click)="$event.stopPropagation()">
+          <div class="fullscreen-header">
+            <h3>{{ fullscreenProduct?.name }}</h3>
+            <button class="close-btn" (click)="closeFullscreenModal()">✕</button>
+          </div>
+          
+          <div class="fullscreen-image-container">
+            <img
+              *ngIf="fullscreenImageUrl"
+              [src]="fullscreenImageUrl"
+              [alt]="fullscreenProduct?.name"
+              class="fullscreen-image"
+            />
+            
+            <!-- Navigation for multiple images -->
+            <div class="fullscreen-nav" *ngIf="fullscreenProduct && fullscreenProduct.images && fullscreenProduct.images.length > 1">
+              <button class="nav-btn nav-prev" (click)="prevFullscreenImage()" title="Previous Image">‹</button>
+              <button class="nav-btn nav-next" (click)="nextFullscreenImage()" title="Next Image">›</button>
+            </div>
+            
+            <!-- Image counter -->
+            <div class="image-counter" *ngIf="fullscreenProduct && fullscreenProduct.images && fullscreenProduct.images.length > 1">
+              {{ getCurrentImageIndex(fullscreenProduct) + 1 }} / {{ fullscreenProduct.images.length }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

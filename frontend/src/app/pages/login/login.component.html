@@ -1,0 +1,35 @@
+    <div class="login-container">
+      <div class="login-box">
+        <h1>Inventory Corpus v2</h1>
+        <h2>Login</h2>
+
+        <form (ngSubmit)="login()">
+          <div class="form-group">
+            <label>Username</label>
+            <input
+              type="text"
+              [(ngModel)]="username"
+              name="username"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              [(ngModel)]="password"
+              name="password"
+              required
+            />
+          </div>
+
+          <button type="submit" [disabled]="loading">
+            {{ loading ? 'Logging in...' : 'Login' }}
+          </button>
+        </form>
+
+        <p *ngIf="error" class="error">{{ error }}</p>
+        <p>Don't have an account? <a routerLink="/register">Register here</a></p>
+      </div>
+    </div>

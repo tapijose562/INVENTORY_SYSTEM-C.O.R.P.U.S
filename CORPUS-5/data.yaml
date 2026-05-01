@@ -1,0 +1,16 @@
+names:
+- boots
+- flip-flop
+- heels
+- sandal
+- shoe
+nc: 5
+roboflow:
+  license: CC BY 4.0
+  project: corpus-bodjj
+  url: https://universe.roboflow.com/corpus-jskv8/corpus-bodjj/dataset/5
+  version: 5
+  workspace: corpus-jskv8
+test: ../test/images
+train: ../train/images
+val: ../valid/images

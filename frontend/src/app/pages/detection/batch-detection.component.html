@@ -1,0 +1,390 @@
+<div class="batch-detection-container">
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="logo">📦 Inventory Corpus v2 - Batch Upload</span>
+    </div>
+    <ul class="nav-menu">
+      <li><a [routerLink]="backLink" class="back-link">← Back to Detection</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="batch-main">
+    <!-- Header -->
+    <header class="batch-header">
+      <h1 class="page-title">📸 Batch Image Upload & Detection</h1>
+      <p class="page-subtitle">Upload múltiples imágenes (máximo {{ MAX_IMAGES }}) y procésalas independientemente</p>
+    </header>
+
+    <!-- Upload Section -->
+    <section class="upload-section" *ngIf="mode === 'upload'">
+      <div class="upload-card">
+        <div class="card-header">
+          <h2>Step 1: Seleccionar Producto</h2>
+        </div>
+        <div class="card-content">
+          <label class="form-label">Producto:</label>
+          <select [(ngModel)]="productId" class="form-select">
+            <option [value]="null">-- Selecciona un producto --</option>
+            <option *ngFor="let product of availableProducts" [value]="product.id">
+              {{ product.name }} ({{ product.brand }}) - #{{ product.id }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="upload-card">
+        <div class="card-header">
+          <h2>Step 2: Seleccionar Imágenes</h2>
+        </div>
+        <div class="card-content">
+          <div
+            class="upload-zone"
+            (click)="browseFiles()"
+            (dragover)="onDragOver($event)"
+            (drop)="onDrop($event)"
+            (dragleave)="onDragLeave()"
+            [class.drag-active]="dragOver"
+          >
+            <input
+              #fileInput
+              type="file"
+              multiple
+              accept="image/*"
+              (change)="onFilesSelected($event)"
+              class="file-input"
+            />
+            <div class="upload-content">
+              <div class="upload-icon">📁</div>
+              <p class="upload-text">Arrastra imágenes aquí o haz clic para seleccionar</p>
+              <p class="upload-hint">Máximo {{ MAX_IMAGES }} imágenes, JPG/PNG/WebP</p>
+            </div>
+          </div>
+
+          <!-- Selected Files List -->
+          <div *ngIf="selectedFiles.length > 0" class="files-list">
+            <div class="files-header">
+              <span>{{ selectedFiles.length }} / {{ MAX_IMAGES }} imágenes seleccionadas</span>
+            </div>
+            <div class="files-grid">
+              <div *ngFor="let file of selectedFiles; let i = index" class="file-item">
+                <div class="file-preview">
+                  <img [src]="file | filePreview" alt="preview" />
+                </div>
+                <div class="file-info">
+                  <span class="file-name">{{ file.name }}</span>
+                  <span class="file-size">{{ (file.size / 1024).toFixed(1) }} KB</span>
+                </div>
+                <button
+                  class="btn btn-small btn-danger"
+                  (click)="removeFile(i)"
+                  title="Eliminar"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="upload-actions">
+        <button
+          class="btn btn-success btn-large"
+          (click)="startUpload()"
+          [disabled]="!productId || selectedFiles.length === 0 || loading"
+        >
+          <span class="btn-icon">🚀</span>
+          Subir {{ selectedFiles.length }} Imágenes
+        </button>
+      </div>
+    </section>
+
+    <!-- Gallery & Processing Section -->
+    <section class="gallery-section" *ngIf="mode === 'gallery' && images.length > 0">
+      <div class="gallery-header">
+        <h2>📋 Galería de Imágenes ({{ currentImageIndex + 1 }} / {{ images.length }})</h2>
+      </div>
+
+      <div class="gallery-container">
+        <!-- Main Image Area -->
+        <div class="main-image-area">
+          <div class="image-display">
+            <img
+              [src]="getImageUrl(images[currentImageIndex])"
+              alt="Current image"
+              class="main-image"
+            />
+            <canvas
+              [attr.data-index]="currentImageIndex"
+              class="selection-canvas"
+              (mousedown)="onCanvasMouseDown($event)"
+              (mousemove)="onCanvasMouseMove($event)"
+              (mouseup)="onCanvasMouseUp($event)"
+            ></canvas>
+          </div>
+
+          <!-- Image Navigation -->
+          <div class="image-nav">
+            <button
+              class="btn btn-secondary"
+              (click)="previousImage()"
+              [disabled]="currentImageIndex === 0"
+            >
+              ◀ Anterior
+            </button>
+            <span class="image-counter">
+              {{ currentImageIndex + 1 }} / {{ images.length }}
+            </span>
+            <button
+              class="btn btn-secondary"
+              (click)="nextImage()"
+              [disabled]="currentImageIndex === images.length - 1"
+            >
+              Siguiente ▶
+            </button>
+          </div>
+        </div>
+
+        <!-- Sidebar Panel -->
+        <div class="panel-sidebar">
+          <!-- Batch Detection Progress -->
+          <div class="panel-card" *ngIf="batchDetectionInProgress">
+            <div class="card-header">
+              <h3>⏳ Detección en Lote</h3>
+            </div>
+            <div class="card-content">
+              <div class="progress-bar">
+                <div 
+                  class="progress-fill" 
+                  [style.width.%]="(detectionProgress / totalImagesForBatch) * 100"
+                ></div>
+              </div>
+              <div class="progress-text">
+                {{ detectionProgress }} / {{ totalImagesForBatch }} imágenes
+              </div>
+              <p class="hint-text">Procesando detecciones...</p>
+            </div>
+          </div>
+
+          <!-- Detection Section -->
+          <div class="panel-card">
+            <div class="card-header">
+              <h3>🔍 Detección</h3>
+            </div>
+            <div class="card-content">
+              <div class="button-group">
+                <button
+                  class="btn btn-primary btn-block"
+                  (click)="detectCurrentImage()"
+                  [disabled]="detectionProcessing || batchDetectionInProgress"
+                >
+                  {{ detectionProcessing ? '⏳ Detectando...' : '🎯 Detectar Imagen' }}
+                </button>
+                <button
+                  class="btn btn-info btn-block"
+                  (click)="detectAllImages()"
+                  [disabled]="batchDetectionInProgress || images.length === 0"
+                >
+                  🚀 Detectar Todas
+                </button>
+              </div>
+
+              <!-- Detection Results -->
+              <div *ngIf="currentDetection" class="detection-results">
+                <div class="result-field">
+                  <label>Marca:</label>
+                  <span class="result-value">{{ currentDetection.brand }}</span>
+                </div>
+                <div class="result-field">
+                  <label>Color:</label>
+                  <span
+                    class="result-value color-box"
+                    [style.backgroundColor]="'rgb(' + currentDetection.rgb.r + ',' + currentDetection.rgb.g + ',' + currentDetection.rgb.b + ')'"
+                  >
+                    {{ currentDetection.color }}
+                  </span>
+                </div>
+                <div class="result-field">
+                  <label>Tamaño:</label>
+                  <span class="result-value">{{ currentDetection.size }}</span>
+                </div>
+                <div class="result-field">
+                  <label>Precio:</label>
+                  <span class="result-value" *ngIf="currentDetection.price">
+                    💲 ${{ currentDetection.price | number:'1.2-2' }}
+                  </span>
+                  <span class="result-value" *ngIf="!currentDetection.price">N/A</span>
+                </div>
+                <div class="result-field">
+                  <label>Confianza:</label>
+                  <span class="result-value confidence" [class.high]="currentDetection.confidence > 0.7">
+                    {{ (currentDetection.confidence * 100) | number:'1.0-0' }}%
+                  </span>
+                </div>
+                <button
+                  class="btn btn-success btn-block"
+                  (click)="saveCurrentDetectionResults()"
+                >
+                  💾 Guardar Resultado
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selection/Annotation Section -->
+          <div class="panel-card">
+            <div class="card-header">
+              <h3>📐 Anotaciones ({{ currentSelections.length }})</h3>
+            </div>
+            <div class="card-content">
+              <p class="hint-text">Dibuja en la imagen para crear selecciones</p>
+              
+              <!-- Current Selections List -->
+              <div *ngIf="currentSelections.length > 0" class="selections-list">
+                <div *ngFor="let selection of currentSelections; let i = index" 
+                     class="selection-item" 
+                     [class.editing]="editingSelectionIndex === i">
+                  <div class="selection-header">
+                    <input 
+                      type="text" 
+                      [(ngModel)]="selection.label" 
+                      (input)="updateSelectionLabel(i, selection.label)"
+                      class="selection-label"
+                      placeholder="Etiqueta de selección"
+                    />
+                    <div class="selection-actions">
+                      <button 
+                        class="btn-icon" 
+                        (click)="editSelection(i)"
+                        [disabled]="editingSelectionIndex === i"
+                        title="Editar selección">
+                        ✏️
+                      </button>
+                      <button 
+                        class="btn-icon btn-danger" 
+                        (click)="deleteSelection(i)"
+                        title="Eliminar selección">
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                  <div class="selection-coords">
+                    <div class="coord-row">
+                      <span>X: {{ selection.x1 | number:'1.0-0' }}</span>
+                      <span>Y: {{ selection.y1 | number:'1.0-0' }}</span>
+                    </div>
+                    <div class="coord-row">
+                      <span>Width: {{ selection.width | number:'1.0-0' }}</span>
+                      <span>Height: {{ selection.height | number:'1.0-0' }}</span>
+                    </div>
+                  </div>
+                  <div *ngIf="editingSelectionIndex === i" class="edit-actions">
+                    <button class="btn btn-small btn-success" (click)="cancelEditSelection()">
+                      ✅ Terminar Edición
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Instructions -->
+              <div class="selection-instructions">
+                <p *ngIf="currentSelections.length === 0" class="hint-text" style="color: #ff9800;">
+                  👆 Dibuja sobre la imagen para crear la primera selección
+                </p>
+                <p *ngIf="editingSelectionIndex !== null" class="hint-text" style="color: #ff9800;">
+                  ✏️ Modo edición: Dibuja nuevamente sobre la selección para actualizarla
+                </p>
+                <p *ngIf="editingSelectionIndex === null && currentSelections.length > 0" class="hint-text">
+                  💡 Haz clic en ✏️ para editar una selección existente
+                </p>
+              </div>
+
+              <!-- Save Button -->
+              <button
+                *ngIf="currentSelections.length > 0"
+                class="btn btn-success btn-block"
+                (click)="saveCurrentImage()"
+              >
+                💾 Guardar {{ currentSelections.length }} Anotaciones
+              </button>
+            </div>
+          </div>
+
+          <!-- Image Status -->
+          <div class="panel-card">
+            <div class="card-header">
+              <h3>📊 Estado</h3>
+            </div>
+            <div class="card-content">
+              <div class="status-item">
+                <span class="status-label">Estado:</span>
+                <span class="status-badge" [class.status-primary]="images[currentImageIndex].is_primary">
+                  {{ images[currentImageIndex].status }}
+                  <span *ngIf="images[currentImageIndex].is_primary">⭐</span>
+                </span>
+              </div>
+              <div class="action-buttons">
+                <button
+                  class="btn btn-small btn-primary"
+                  (click)="setAsPrimary(images[currentImageIndex].id)"
+                  [disabled]="images[currentImageIndex].is_primary === 1"
+                >
+                  ⭐ Hacer Principal
+                </button>
+                <button
+                  class="btn btn-small btn-danger"
+                  (click)="deleteImage(images[currentImageIndex].id, currentImageIndex)"
+                >
+                  🗑️ Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thumbnail Gallery -->
+      <div class="thumbnail-gallery">
+        <div class="gallery-title">Todas las imágenes</div>
+        <div class="thumbnails">
+          <div
+            *ngFor="let image of images; let i = index"
+            class="thumbnail"
+            [class.active]="i === currentImageIndex"
+            (click)="setCurrentImage(i)"
+          >
+            <img [src]="getImageUrl(image)" [attr.alt]="'Image ' + i" />
+            <div class="thumbnail-badge">{{ i + 1 }}</div>
+            <div *ngIf="image.is_primary" class="thumbnail-primary">⭐</div>
+            <div class="thumbnail-status">{{ image.status | slice:0:3 }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Finish Button -->
+      <div class="finish-section">
+        <button class="btn btn-success btn-large" (click)="finish()">
+          ✅ Finalizar
+        </button>
+      </div>
+    </section>
+
+    <!-- Error Message -->
+    <div *ngIf="error" class="error-toast">
+      <span class="error-icon">❌</span>
+      <span class="error-text">{{ error }}</span>
+      <button class="error-close" (click)="error = ''">✕</button>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div *ngIf="loading" class="loading-overlay">
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Subiendo imágenes...</p>
+      </div>
+    </div>
+  </main>
+</div>

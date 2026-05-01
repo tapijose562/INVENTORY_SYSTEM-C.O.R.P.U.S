@@ -1,0 +1,12 @@
+import sqlite3
+conn = sqlite3.connect('inventory.db')
+cur = conn.cursor()
+try:
+    cur.execute('SELECT id, username, role, hashed_password FROM users')
+    rows = cur.fetchall()
+    for r in rows:
+        print(r)
+except Exception as e:
+    print('Error:', e)
+finally:
+    conn.close()

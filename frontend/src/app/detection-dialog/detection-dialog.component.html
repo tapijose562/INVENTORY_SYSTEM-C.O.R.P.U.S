@@ -1,0 +1,30 @@
+<div class="detection-dialog">
+  <h2 mat-dialog-title>Selección Manual de Detección</h2>
+
+  <mat-dialog-content>
+    <div class="image-preview">
+      <img [src]="data.imageUrl" alt="Imagen a analizar" class="preview-image">
+    </div>
+
+    <app-detection-selector
+      *ngIf="!loading && detections"
+      [detections]="detections"
+      [loading]="false"
+      [imageUrl]="data.imageUrl"
+      (detectionSelected)="onDetectionSelected($event)"
+      (selectionConfirmed)="onSelectionConfirmed($event)"
+    ></app-detection-selector>
+
+    <div class="loading-container" *ngIf="loading">
+      <mat-spinner></mat-spinner>
+      <p>Analizando imagen y obteniendo detecciones...</p>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()">Cancelar</button>
+    <button mat-raised-button color="primary" [disabled]="!selectedDetectionId" (click)="confirmSelection()">
+      Confirmar Selección
+    </button>
+  </mat-dialog-actions>
+</div>

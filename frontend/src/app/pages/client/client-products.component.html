@@ -1,0 +1,44 @@
+<section class="client-products-page">
+  <div class="catalog-header">
+    <div>
+      <p class="eyebrow">Ver Catálogo</p>
+      <h1>Explora todos los productos disponibles en nuestro inventario</h1>
+      <p class="description">Busca por marca, filtra por colores y descubre zapatillas disponibles en stock.</p>
+    </div>
+    <div class="filter-bar">
+      <input type="text" placeholder="Buscar productos" [(ngModel)]="searchQuery" (ngModelChange)="applyFilters()" />
+      <select [(ngModel)]="selectedBrand" (change)="applyFilters()">
+        <option value="">Todas las marcas</option>
+        <option *ngFor="let brand of brands" [value]="brand">{{ brand }}</option>
+      </select>
+      <select [(ngModel)]="selectedColor" (change)="applyFilters()">
+        <option value="">Todos los colores</option>
+        <option *ngFor="let color of colors" [value]="color">{{ color }}</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="products-grid">
+    <div class="product-card" *ngFor="let product of displayedProducts">
+      <div class="image-wrap">
+        <img [src]="product.images?.[0]?.image_url || 'https://via.placeholder.com/320x240?text=Sin+imagen'" alt="{{ product.name }}" />
+      </div>
+      <div class="product-content">
+        <p class="product-brand">{{ product.brand || 'Marca desconocida' }}</p>
+        <h2 class="product-name">{{ product.name || 'Sin nombre' }}</h2>
+        <div class="product-meta">
+          <span class="meta-pill">Precio: {{ product.price ? '$' + product.price.toFixed(2) : 'N/A' }}</span>
+          <span class="meta-pill">Stock: {{ product.stock ?? 'N/A' }}</span>
+        </div>
+        <p class="meta-text">Colores: {{ product.colors?.join(', ') || 'No especificado' }}</p>
+        <p class="meta-text">Tallas: {{ product.size?.join(', ') || 'No disponible' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pagination-bar" *ngIf="filteredProducts.length > pageSize">
+    <button type="button" (click)="prevPage()" [disabled]="page === 1">Anterior</button>
+    <span>Página {{ page }} de {{ totalPages }}</span>
+    <button type="button" (click)="nextPage()" [disabled]="page * pageSize >= filteredProducts.length">Siguiente</button>
+  </div>
+</section>

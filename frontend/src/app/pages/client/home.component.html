@@ -1,0 +1,62 @@
+<section class="client-home-page">
+  <div class="hero-panel">
+    <div>
+      <p class="eyebrow">Bienvenido de nuevo</p>
+      <h1>Encuentra tu próxima zapatilla ideal</h1>
+      <p class="description">Explora el inventario exclusivo, detecta modelos con IA y consulta el catálogo de zapatillas disponibles.</p>
+      <div class="hero-actions">
+        <button class="btn-primary" routerLink="/client/detection">Detectar zapatillas</button>
+        <button class="btn-secondary" routerLink="/client/products">Ver catálogo</button>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-card">
+        <span class="hero-tag">Hola, {{ userFirstName }}</span>
+        <strong>{{ totalProducts }} productos en stock</strong>
+        <p>Marcas top, modelos exclusivos y detección instantánea de zapatillas.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-box">
+      <span>Productos</span>
+      <strong>{{ totalProducts }}</strong>
+    </div>
+    <div class="stat-box">
+      <span>Marcas</span>
+      <strong>{{ totalBrands }}</strong>
+    </div>
+    <div class="stat-box">
+      <span>Confianza máxima</span>
+      <strong>{{ (bestConfidence * 100).toFixed(0) }}%</strong>
+    </div>
+  </div>
+
+  <section class="featured-section" *ngIf="featuredProducts.length > 0">
+    <div class="section-header">
+      <div>
+        <h2>Productos destacados</h2>
+        <p>Los mejores modelos según confianza y popularidad.</p>
+      </div>
+      <a routerLink="/client/products">Ver catálogo completo</a>
+    </div>
+
+    <div class="featured-grid">
+      <article class="featured-card" *ngFor="let product of featuredProducts.slice(0, 3)">
+        <div class="featured-image">
+          <img [src]="product.images?.[0]?.image_url || 'https://via.placeholder.com/360x260?text=Sin+imagen'" alt="{{ product.name }}" />
+        </div>
+        <div class="featured-info">
+          <span class="featured-brand">{{ product.brand || 'Marca desconocida' }}</span>
+          <h3>{{ product.name }}</h3>
+          <p>{{ product.color_primary || 'Color no disponible' }}</p>
+          <div class="featured-meta">
+            <span>{{ product.stock ?? 'Sin stock' }} en stock</span>
+            <strong>{{ product.price ? '$' + product.price.toFixed(2) : 'Precio N/A' }}</strong>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+</section>

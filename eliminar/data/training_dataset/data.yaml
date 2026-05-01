@@ -1,0 +1,7 @@
+path: C:\Users\Juan rodriguez\systemasDiploma\Inventory-Corpus-v2\data\training_dataset
+train: images/train
+val: images/val
+nc: 2
+names:
+  0: adidas_runner
+  1: nike

@@ -1,0 +1,784 @@
+<div class="detection-container">
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="logo">📦 Inventory Corpus v2</span>
+    </div>
+    <button class="mobile-toggle" (click)="mobileMenuOpen = !mobileMenuOpen" (keydown.enter)="mobileMenuOpen = !mobileMenuOpen" tabindex="0" aria-label="Toggle menu">
+      <span class="hamburger"></span>
+    </button>
+      <ul class="nav-menu" [class.active]="mobileMenuOpen">
+      <li *ngIf="currentUser?.role === 'admin'"><a routerLink="/admin/dashboard" (click)="mobileMenuOpen = false" (keydown.enter)="mobileMenuOpen = false" tabindex="0">Dashboard</a></li>
+      <li><a routerLink="/admin/detection" class="active" (click)="mobileMenuOpen = false" (keydown.enter)="mobileMenuOpen = false" tabindex="0">Detection</a></li>
+      <li><a routerLink="/admin/products" (click)="mobileMenuOpen = false" (keydown.enter)="mobileMenuOpen = false" tabindex="0">Products</a></li>
+      <li *ngIf="currentUser?.role === 'admin'"><a routerLink="/admin/training" (click)="mobileMenuOpen = false" (keydown.enter)="mobileMenuOpen = false" tabindex="0">Training</a></li>
+      <li><a class="logout-link" (click)="logout(); mobileMenuOpen = false" (keydown.enter)="logout(); mobileMenuOpen = false" tabindex="0">Logout</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="detection-main">
+    <!-- Header Section -->
+    <header class="detection-header">
+      <h1 class="page-title">🔍 Real-Time Shoe Detection</h1>
+      <p class="page-subtitle">Use webcam or upload image to detect shoes with AI precision</p>
+
+      <!-- Model Selector -->
+      <div class="model-selector">
+        <h3>🤖 AI Model Selection</h3>
+        <div class="model-options">
+          <label class="model-option">
+            <input
+              type="radio"
+              name="detectionModel"
+              [(ngModel)]="useCorpusModel"
+              [value]="false"
+              (change)="checkCorpusStatus()"
+            />
+            <span class="model-label">
+              <strong>Legacy Model</strong><br>
+              <small>General object detection</small>
+            </span>
+          </label>
+          <label class="model-option">
+            <input
+              type="radio"
+              name="detectionModel"
+              [(ngModel)]="useCorpusModel"
+              [value]="true"
+              (change)="checkCorpusStatus()"
+            />
+            <span class="model-label">
+              <strong>🎯 Corpus Model</strong><br>
+              <small>Trained on Nike/Adidas shoes</small>
+              <span class="model-status" [class.available]="corpusStatus?.available" [class.unavailable]="!corpusStatus?.available">
+                {{ corpusStatus?.available ? '✅ Available' : '❌ Unavailable' }}
+              </span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </header>
+
+    <!-- Real-Time Detection Section -->
+    <section class="realtime-detection-section" *ngIf="!realtimeMode">
+      <div class="realtime-card">
+        <div class="realtime-header">
+          <h2 class="realtime-title">⚡ Real-Time Detection Mode (Beta)</h2>
+          <p class="realtime-subtitle">Automatic detection every 1-2 seconds - Perfect for testing and monitoring</p>
+        </div>
+        <div class="realtime-features">
+          <ul class="features-list">
+            <li>📹 Live camera feed with automatic detection</li>
+            <li>🎯 Real-time results updating continuously</li>
+            <li>📊 FPS counter and detection history</li>
+            <li>🚀 No manual capture needed - just start and watch!</li>
+          </ul>
+        </div>
+        <button
+          class="btn btn-gradient btn-large"
+          (click)="startRealtimeDetection()"
+          title="Start real-time detection"
+        >
+          <span class="btn-icon">⚡</span>
+          Start Real-Time Detection
+        </button>
+      </div>
+    </section>
+
+    <!-- Active Real-Time Detection Panel -->
+    <section class="realtime-active-section" *ngIf="realtimeMode && realtimeDetectionActive">
+      <div class="realtime-monitor">
+        <!-- Video Feed Area -->
+        <div class="monitor-left">
+          <div class="video-wrapper">
+            <video
+              #webcam
+              [srcObject]="webcamStream"
+              autoplay
+              playsinline
+              class="realtime-video"
+            ></video>
+            <div class="video-stats">
+              <div class="stat-item">
+                <span class="stat-label">FPS:</span>
+                <span class="stat-value">{{ fps | number:'1.0-1' }}</span>
+              </div>
+              <div class="stat-item status-live">
+                <span class="status-dot">●</span>
+                <span class="stat-label">LIVE</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <div class="monitor-controls">
+            <div class="control-group">
+              <label class="control-label">Capture Interval (ms):</label>
+              <input
+                type="range"
+                min="500"
+                max="5000"
+                step="100"
+                [(ngModel)]="captureIntervalMs"
+                (change)="setRealtimeInterval(captureIntervalMs)"
+                class="control-slider"
+              />
+              <span class="interval-display">{{ captureIntervalMs }}ms</span>
+            </div>
+
+            <button
+              class="btn btn-danger btn-stop"
+              (click)="stopRealtimeDetection()"
+            >
+              <span class="btn-icon">⏹️</span>
+              Stop Real-Time
+            </button>
+          </div>
+        </div>
+
+        <!-- Results Area -->
+        <div class="monitor-right">
+          <div class="results-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Latest Detection Results</h3>
+              <span class="result-count">{{ realtimeResults.length }} recent</span>
+            </div>
+
+            <!-- Current Detection -->
+            <div *ngIf="detectionResult" class="current-detection">
+              <div class="detection-item">
+                <div class="item-field">
+                  <label>Brand:</label>
+                  <span class="item-value">{{ detectionResult.brand || 'N/A' }}</span>
+                </div>
+                <div class="item-field">
+                  <label>Colores:</label>
+                  <span class="item-value color-badge" [style.backgroundColor]="'rgb(' + detectionResult.rgb.r + ',' + detectionResult.rgb.g + ',' + detectionResult.rgb.b + ')'">
+                    {{ detectionResult.colors || detectionResult.color || 'N/A' }}
+                  </span>
+                </div>
+                <div class="item-field">
+                  <label>Size:</label>
+                  <span class="item-value">{{ detectionResult.size || 'N/A' }}</span>
+                </div>
+                <div class="item-field">
+                  <label>Price:</label>
+                  <span class="item-value price-value" *ngIf="detectionResult.price">
+                    💲 ${{ detectionResult.price | number:'1.2-2' }}
+                  </span>
+                  <span class="item-value" *ngIf="!detectionResult.price">N/A</span>
+                </div>
+                <div class="item-field">
+                  <label>Confidence:</label>
+                  <span class="item-value confidence" [class.high]="detectionResult.confidence > 0.7">
+                    {{ (detectionResult.confidence * 100) | number:'1.0-0' }}%
+                  </span>
+                </div>
+                <div class="item-field full-width">
+                  <label>OCR Text:</label>
+                  <div class="item-text">{{ detectionResult.text || '(no text detected)' }}</div>
+                </div>
+                <div class="item-actions">
+                  <button
+                      *ngIf="currentUser?.role === 'admin'"
+                      class="btn btn-small btn-primary"
+                      (click)="saveDetection()"
+                    >
+                      💾 Save as Product
+                    </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- No Results State -->
+            <div *ngIf="!detectionResult" class="no-results">
+              <p>⏳ Waiting for first detection...</p>
+            </div>
+
+            <!-- History -->
+            <div class="detection-history" *ngIf="realtimeResults.length > 1">
+              <div class="history-header">
+                <h4>📋 Detection History</h4>
+              </div>
+              <div class="history-list">
+                <div 
+                  *ngFor="let result of realtimeResults.slice(1, 6)" 
+                  class="history-item"
+                >
+                  <span class="history-time">{{ result.timestamp | date:'short' }}</span>
+                  <span class="history-brand">{{ result.brand }}</span>
+                  <span class="history-color">{{ result.color }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Detection Methods -->
+    <section class="detection-methods" *ngIf="!realtimeMode">
+      <div class="methods-grid">
+        <!-- Webcam Card -->
+        <div class="method-card">
+          <div class="card-header">
+            <h2 class="card-title">📹 Webcam Detection</h2>
+          </div>
+          <div class="card-content">
+            <div class="webcam-wrapper">
+              <video
+                #webcam
+                [srcObject]="webcamStream"
+                autoplay
+                playsinline
+                class="webcam-video"
+              ></video>
+              <canvas #canvas class="webcam-canvas"></canvas>
+            </div>
+            <div class="webcam-controls">
+              <button
+                class="btn btn-primary"
+                (click)="startWebcam()"
+                [disabled]="webcamActive"
+              >
+                <span class="btn-icon">🎬</span>
+                Start Webcam
+              </button>
+              <button
+                class="btn btn-secondary"
+                (click)="captureFrame()"
+                [disabled]="!webcamActive || loading"
+              >
+                <span class="btn-icon">📸</span>
+                Capture & Detect
+              </button>
+              <button
+                class="btn btn-danger"
+                (click)="stopWebcam()"
+                [disabled]="!webcamActive"
+              >
+                <span class="btn-icon">⏹️</span>
+                Stop Webcam
+              </button>
+            </div>
+            <div class="webcam-status" aria-live="polite">
+              <span [class.active]="webcamActive">
+                {{ webcamActive ? '● Live' : '○ Offline' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload Card -->
+        <div class="method-card">
+          <div class="card-header">
+            <h2 class="card-title">📤 Upload Images</h2>
+            <span class="file-count" *ngIf="selectedFiles.length > 0">
+              {{ selectedFiles.length }}/10 images
+            </span>
+          </div>
+          <div class="card-content">
+            <div
+              class="upload-zone"
+              (click)="onUploadZoneClick()"
+              (dragover)="onDragOver($event)"
+              (drop)="onDrop($event)"
+              (dragleave)="onDragLeave($event)"
+              [class.drag-active]="dragOver"
+              [class.disabled]="selectedFiles.length >= 10"
+            >
+              <input
+                #fileInput
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                multiple
+                (change)="onFileSelected($event)"
+                class="file-input"
+                [disabled]="selectedFiles.length >= 10"
+              />
+              <div class="upload-content">
+                <div class="upload-icon">📁</div>
+                <p class="upload-text">Upload Image or Drop image here or click to browse</p>
+                <p class="upload-hint">Supports JPG, PNG, WebP (Max 10 images)</p>
+              </div>
+            </div>
+
+            <!-- Image Carousel -->
+            <div *ngIf="selectedFiles.length > 0" class="image-carousel">
+              <div class="carousel-header">
+                <h4 class="carousel-title">📸 Selected Images</h4>
+                <span class="carousel-count">{{ selectedFiles.length }} image{{ selectedFiles.length !== 1 ? 's' : '' }}</span>
+              </div>
+
+              <div class="carousel-container">
+                <div class="carousel-track">
+                  <div
+                    *ngFor="let file of selectedFiles; let i = index"
+                    class="carousel-item"
+                    [class.active]="i === selectedFileIndex"
+                    (click)="selectFileForDetection(i)"
+                  >
+                    <div class="item-image">
+                      <img
+                        [src]="file | filePreview"
+                        [alt]="file.name"
+                        class="preview-image"
+                        loading="lazy"
+                      />
+                      <div class="item-overlay" *ngIf="i === selectedFileIndex">
+                        <span class="active-indicator">🎯</span>
+                      </div>
+                    </div>
+                    <div class="item-info">
+                      <div class="item-label">Imagen {{ i + 1 }}</div>
+                      <div class="item-name" [title]="file.name">
+                        {{ file.name.length > 15 ? (file.name | slice:0:15) + '...' : file.name }}
+                      </div>
+                      <div class="item-size">{{ (file.size / 1024 / 1024).toFixed(2) }} MB</div>
+                      <div class="item-status" *ngIf="imageDetectionResults[i]">
+                        <span *ngIf="imageDetectionResults[i]?.saved" class="status-saved">✅ Guardado</span>
+                        <span *ngIf="!imageDetectionResults[i]?.saved" class="status-processed">⚡ Detectado</span>
+                      </div>
+                      <div class="item-status" *ngIf="!imageDetectionResults[i]">
+                        <span class="status-pending">⏳ Pendiente</span>
+                      </div>
+                    </div>
+                    <button
+                      class="remove-btn"
+                      (click)="removeFile(i); $event.stopPropagation()"
+                      title="Remove image"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Selected Images Summary -->
+              <div class="selected-status-summary" *ngIf="selectedFiles.length > 0">
+                <div class="summary-row">
+                  <span>Selected Images: {{ selectedFiles.length }}</span>
+                  <span>Processed: {{ getProcessedImagesCount() }}</span>
+                  <span>Saved: {{ getSavedImagesCount() }}</span>
+                </div>
+                <p class="summary-note">Guarda resultados por imagen desde el panel de Detection Results. Esto evita llamadas innecesarias al backend.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section *ngIf="selectedFiles.length > 0" class="results-section" [class.fullscreen-mode]="fullscreenSelectionMode">
+      <div class="results-container">
+        <div class="results-header">
+          <h2 class="results-title">✨ Detection Results</h2>
+          <div class="results-actions">
+            <button
+              class="btn btn-primary btn-sm"
+              (click)="detectFromUpload()"
+              [disabled]="loading || !getCurrentFile()"
+              title="Detect object for current image"
+            >
+              <span class="btn-icon">🔍</span>
+              Detect Objects
+            </button>
+              <button
+                class="btn btn-info btn-sm"
+                (click)="openBuyerView()"
+                [disabled]="!resultImage"
+                title="Open buyer view with annotated image"
+              >
+                <span class="btn-icon">🛍️</span>
+                Vista Comprador
+              </button>
+            <button
+              class="btn btn-ghost exit-btn"
+              (click)="exitFullscreenSelection()"
+              title="Exit selection mode (ESC)"
+            >
+              ✕ Exit
+            </button>
+          </div>
+        </div>
+
+        <!-- Detection Results Summary Panel -->
+        <div class="detection-summary-panel" *ngIf="detectionResult">
+          <div class="summary-header">
+            <h3 class="summary-heading">📊 Detected Data</h3>
+            <span class="detection-status">✅ Detected</span>
+          </div>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <label class="summary-label">Brand</label>
+              <span class="summary-value">{{ detectionResult.brand || 'N/A' }}</span>
+            </div>
+            <div class="summary-item">
+              <label class="summary-label">Color</label>
+              <div class="summary-color">
+                <span class="color-dot" *ngIf="detectionResult.rgb" [style.backgroundColor]="'rgb(' + detectionResult.rgb.r + ',' + detectionResult.rgb.g + ',' + detectionResult.rgb.b + ')'"></span>
+                <span class="summary-value">{{ detectionResult.colors || detectionResult.color || 'N/A' }}</span>
+              </div>
+            </div>
+            <div class="summary-item">
+              <label class="summary-label">Size</label>
+              <span class="summary-value">{{ detectionResult.size || 'N/A' }}</span>
+            </div>
+            <div class="summary-item">
+              <label class="summary-label">Confidence</label>
+              <span class="summary-value confidence-high">{{ (detectionResult.confidence * 100) | number:'1.0-0' }}%</span>
+            </div>
+            <div class="summary-item full-width">
+              <label class="summary-label">Price</label>
+              <span class="summary-value" *ngIf="detectionResult.price">💲 ${{ detectionResult.price | number:'1.0-0' }}</span>
+              <span class="summary-value" *ngIf="!detectionResult.price">(No price detected)</span>
+            </div>
+            <div class="summary-item full-width">
+              <label class="summary-label">OCR Text</label>
+              <span class="summary-value">{{ detectionResult.text || '(No text detected)' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Image and Canvas Container -->
+        <div class="image-canvas-wrapper">
+          <img
+            #resultImageElement
+            [src]="resultImage"
+            alt="Detected image"
+            class="result-image"
+            *ngIf="resultImage"
+            (load)="setAnnotationCanvas()"
+          />
+          <canvas
+            #annotationCanvas
+            class="annotation-canvas"
+            *ngIf="resultImage"
+            (mousedown)="onCanvasMouseDown($event)"
+            (mousemove)="onCanvasMouseMove($event)"
+            (mouseup)="onCanvasMouseUp($event)"
+            (mouseleave)="onCanvasMouseLeave($event)"
+          ></canvas>
+        </div>
+
+        <!-- Annotation Panel -->
+        <div class="annotation-panel" *ngIf="resultImage">
+          <div class="panel-content">
+            <div class="instructions-section">
+              <div class="instructions-header">
+                <span class="instructions-icon">🎯</span>
+                <h3 class="instructions-title">Object Selection</h3>
+              </div>
+              <p class="instructions-text">Click and drag on the image above to select the shoe or object you want to analyze</p>
+            </div>
+
+            <div class="controls-section">
+              <div class="control-buttons">
+                
+                <button
+                  class="btn btn-secondary btn-sm"
+                  (click)="clearAnnotation()"
+                  [disabled]="!annotationBox"
+                >
+                  <span class="btn-icon">🗑️</span>
+                  Clear Selection
+                </button>
+              </div>
+
+              <div *ngIf="annotationBox" class="selection-info">
+                <h4 class="selection-title">Current Selection</h4>
+                <div class="selection-coords">
+                  <div class="coord-row">
+                    <span class="coord-label">X:</span>
+                    <span class="coord-value">{{ annotationBox.x | number:'1.0-0' }}</span>
+                    <span class="coord-label">Y:</span>
+                    <span class="coord-value">{{ annotationBox.y | number:'1.0-0' }}</span>
+                  </div>
+                  <div class="coord-row">
+                    <span class="coord-label">Width:</span>
+                    <span class="coord-value">{{ annotationBox.w | number:'1.0-0' }}</span>
+                    <span class="coord-label">Height:</span>
+                    <span class="coord-value">{{ annotationBox.h | number:'1.0-0' }}</span>
+                  </div>
+                </div>
+                <div class="selection-edit-controls">
+                  <button class="btn btn-sm" (click)="adjustWidth(-10)">-W</button>
+                  <button class="btn btn-sm" (click)="adjustWidth(10)">+W</button>
+                  <button class="btn btn-sm" (click)="adjustHeight(-10)">-H</button>
+                  <button class="btn btn-sm" (click)="adjustHeight(10)">+H</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results Data -->
+        <div class="results-data">
+          <div class="data-grid">
+            <!-- Product basic info is now handled by VariantEditor -->
+            <div class="data-card" style="grid-column: 1 / -1;">
+              <app-variant-editor [suggestedColors]="getSuggestedColors()" (valueChange)="onVariantFormChange($event)"></app-variant-editor>
+            </div>
+
+            <div class="data-card">
+              <label class="data-label" for="color-input">Colores</label>
+              <div class="color-section">
+                <div class="color-preview">
+                  <input
+                    id="color-input"
+                    type="text"
+                    [(ngModel)]="detectionResult.colors"
+                    name="color"
+                    class="color-input"
+                    placeholder="e.g., Black"
+                  />
+                </div>
+                <button
+                  class="btn btn-secondary btn-sm color-detect-btn"
+                  (click)="detectColorFromSelection()"
+                  [disabled]="!annotationBox || loading"
+                  title="Detect color from selection"
+                >
+                  <span class="btn-icon">🎨</span>
+                  Detect Color
+                </button>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <label class="data-label" for="size-input">Size</label>
+              <input
+                id="size-input"
+                type="number"
+                [(ngModel)]="detectionResult.size"
+                name="size"
+                class="data-input"
+                placeholder="e.g., 42"
+                min="0"
+                max="50"
+                step="0.5"
+              />
+              <div *ngIf="detectionResult.size !== null && detectionResult.size !== undefined && !isSizeValid(detectionResult.size)" class="field-error">
+                La talla debe ser un valor numérico entre 0 y 50.
+              </div>
+            </div>
+
+            <div class="data-card">
+              <label class="data-label" for="price-input">Price (COP)</label>
+              <input
+                id="price-input"
+                type="number"
+                [(ngModel)]="detectionResult.price"
+                name="price"
+                class="data-input"
+                placeholder="e.g., 10000"
+                min="10000"
+                step="100"
+              />
+              <div *ngIf="detectionResult.price !== null && detectionResult.price !== undefined && !isPriceValid(detectionResult.price)" class="field-error">
+                El precio debe ser mínimo 10.000 COP.
+              </div>
+              <div *ngIf="detectionResult.price" class="price-badge">
+                <span class="price-text">Precio detectado: ${{ detectionResult.price | number:'1.0-0' }}</span>
+              </div>
+              <div *ngIf="!detectionResult.price" class="price-badge empty">
+                <span class="price-text">Puedes ingresar el precio manualmente.</span>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <label class="data-label" for="ocr-textarea">OCR Text</label>
+              <textarea
+                id="ocr-textarea"
+                [(ngModel)]="detectionResult.text"
+                name="text"
+                class="data-textarea"
+                placeholder="Detected text from image..."
+                rows="3"
+              ></textarea>
+              <div class="ocr-actions">
+                <button
+                  class="btn btn-secondary btn-sm"
+                  (click)="generateTextSuggestion()"
+                  [disabled]="!detectionResult || suggestionLoading"
+                  title="Generar texto sugerido con IA"
+                >
+                  <span class="btn-icon">🤖</span>
+                  Sugerir texto IA
+                </button>
+                <span *ngIf="suggestionLoading" class="suggestion-loading">Generando sugerencia...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-section">
+          <div class="action-buttons">
+            <button
+              class="btn btn-success btn-large"
+              (click)="saveCurrentImageDetection()"
+              [disabled]="!detectionResult || loading"
+            >
+              <span class="btn-icon">💾</span>
+              Guardar resultado actual
+            </button>
+            <button
+              class="btn btn-secondary btn-large"
+              (click)="clearResults()"
+            >
+              <span class="btn-icon">🗑️</span>
+              Limpiar todo
+            </button>
+          </div>
+          <div class="action-note">
+            <p>
+              Para guardar un producto completo necesitas al menos un resultado guardado.
+            </p>
+          </div>
+        </div>
+
+<div class="save-product-card">
+          <div class="save-product-header">
+            <h3>✅ Guardar producto completo</h3>
+            <p>Guarda todas las imágenes procesadas en un solo producto. El botón principal está aquí para mayor visibilidad.</p>
+          </div>
+          <div class="save-product-actions">
+            <button
+              class="btn btn-success btn-large btn-block"
+              (click)="saveCompleteProduct()"
+              [disabled]="selectedFiles.length === 0 || getSavedImagesCount() === 0 || uploadingImages"
+              title="Guardar producto completo (requiere al menos un resultado guardado)"
+            >
+              <span class="btn-icon">✅</span>
+              Guardar producto completo
+            </button>
+          </div>
+        </div>
+        <!-- Product Images Gallery -->
+        <div *ngIf="productImages.length > 0" class="product-images-section">
+          <div class="images-header">
+            <h3 class="images-title">📸 Product Images</h3>
+            <span class="images-count">{{ productImages.length }} image{{ productImages.length !== 1 ? 's' : '' }}</span>
+          </div>
+          <div class="images-gallery">
+            <div
+              *ngFor="let image of productImages"
+              class="image-item"
+              [class.primary]="image.is_primary === 1"
+            >
+              <div class="image-container">
+                <img
+                  [src]="image.image_url"
+                  [alt]="image.image_filename"
+                  class="product-image"
+                  loading="lazy"
+                />
+                <div *ngIf="image.is_primary === 1" class="primary-badge">
+                  <span class="badge-text">PRIMARY</span>
+                </div>
+              </div>
+              <div class="image-info">
+                <div class="image-name">{{ image.image_filename }}</div>
+                <div class="image-meta">
+                  <span class="meta-size">{{ (image.image_size / 1024 / 1024).toFixed(2) }} MB</span>
+                  <span class="meta-status" [class]="image.status">{{ image.status }}</span>
+                </div>
+                <div *ngIf="image.detected_brand || image.detected_color" class="image-detection">
+                  <span *ngIf="image.detected_brand" class="detection-brand">{{ image.detected_brand }}</span>
+                  <span *ngIf="image.detected_color" class="detection-color">{{ image.detected_color }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Loading Overlay -->
+  <div *ngIf="loading" class="loading-overlay">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <p class="loading-text">Processing image...</p>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="error" class="error-toast">
+    <div class="error-content">
+      <span class="error-icon">❌</span>
+      <span class="error-text">{{ error }}</span>
+      <button class="error-close" (click)="error = ''" (keydown.enter)="error = ''" tabindex="0">✕</button>
+    </div>
+  </div>
+
+  <!-- Success Message -->
+  <div *ngIf="success" class="success-toast">
+    <div class="success-content">
+      <span class="success-icon">✅</span>
+      <span class="success-text">{{ success }}</span>
+      <button class="success-close" (click)="success = ''" (keydown.enter)="success = ''" tabindex="0">✕</button>
+    </div>
+  </div>
+
+  <!-- Fullscreen Modal -->
+  <div *ngIf="isFullscreen" class="fullscreen-modal" (click)="closeFullscreen()">
+    <div class="fullscreen-content" (click)="$event.stopPropagation()">
+      <button
+        class="btn btn-ghost fullscreen-close"
+        (click)="closeFullscreen()"
+        (keydown.enter)="closeFullscreen()"
+        tabindex="0"
+        title="Close fullscreen (ESC)"
+      >
+        ✕
+      </button>
+      <img
+        #fullscreenImage
+        [src]="resultImage"
+        alt="Detected image - Fullscreen"
+        class="fullscreen-image"
+      />
+      <div *ngIf="annotationBox" class="fullscreen-selection">
+        <div
+          class="selection-box"
+          [style.left.px]="annotationBox.x * scaleFactor"
+          [style.top.px]="annotationBox.y * scaleFactor"
+          [style.width.px]="annotationBox.w * scaleFactor"
+          [style.height.px]="annotationBox.h * scaleFactor"
+        ></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buyer View Modal -->
+  <div *ngIf="isBuyerViewOpen" class="buyerview-modal" (click)="closeBuyerView()">
+    <div class="buyerview-content" (click)="$event.stopPropagation()">
+      <button class="btn btn-ghost fullscreen-close" (click)="closeBuyerView()" tabindex="0">✕</button>
+      <h2>Product Preview</h2>
+      <div class="buyer-preview">
+        <div class="preview-image-wrap">
+          <img *ngIf="buyerImageDataUrl" [src]="buyerImageDataUrl" alt="Annotated preview" class="preview-image" />
+          <div *ngIf="!buyerImageDataUrl && resultImage" class="preview-placeholder">Preparing preview...</div>
+        </div>
+        <div class="preview-details">
+          <div class="detail-row"><strong>Brand:</strong> {{ detectionResult?.brand || detectionResult?.detection_class || 'N/A' }}</div>
+          <div class="detail-row"><strong>Confidence:</strong> {{ formatConfidence() }}</div>
+          <div class="detail-row"><strong>Colors:</strong> {{ detectionResult?.colors || detectionResult?.color || 'N/A' }}</div>
+          <div class="detail-row"><strong>RGB:</strong> {{ detectionResult?.rgb ? (detectionResult.rgb.r + ', ' + detectionResult.rgb.g + ', ' + detectionResult.rgb.b) : 'N/A' }}</div>
+          <div class="detail-row"><strong>Size:</strong> {{ detectionResult?.size || 'N/A' }}</div>
+          <div class="detail-row"><strong>Price (COP):</strong> {{ detectionResult?.price ? ('$' + (detectionResult.price | number:'1.0-0')) : 'N/A' }}</div>
+          <div class="detail-row"><strong>OCR Text:</strong> {{ detectionResult?.text || 'N/A' }}</div>
+          <div class="detail-actions">
+            <button class="btn btn-success" (click)="saveProductToServer()" [disabled]="!buyerImageDataUrl || savingToServer">Guardar en servidor</button>
+            <button class="btn btn-primary" (click)="downloadAnnotatedImage()" [disabled]="!buyerImageDataUrl">Descargar imagen anotada</button>
+            <button class="btn btn-secondary" (click)="closeBuyerView()">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

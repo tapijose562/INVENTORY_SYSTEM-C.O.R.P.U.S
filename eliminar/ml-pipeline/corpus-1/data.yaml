@@ -1,0 +1,15 @@
+names:
+- marca
+- shoe
+- texto
+nc: 3
+roboflow:
+  license: CC BY 4.0
+  project: corpus-hucc7
+  url: https://universe.roboflow.com/corpus-e4hp8/corpus-hucc7/dataset/1
+  version: 1
+  workspace: corpus-e4hp8
+path: C:\Users\Juan rodriguez\systemasDiploma\Inventory-Corpus-v2\ml-pipeline\corpus-1
+train: train/images
+val: valid/images
+test: test/images
